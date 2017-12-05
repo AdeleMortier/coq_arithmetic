@@ -124,12 +124,19 @@ Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
    | dummy x => True
   end.
 
-Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) : list (Prop) :=
+Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) : Prop :=
   match C with
-    | nilc => nil
+    | nilc => False
     | intc D => refl_Ctxt D l
-    | assume P D => cons (refl_Pprop P l) (refl_Ctxt D l)
+    | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l)
   end.
+
+
+(* On va tester si refl_Pprop(∀x.∃y.x = S(y) ∨ x = 0) se réduit     *
+ * bien vers l’objet de type Prop forall x, exists y, x=(S y)\/x=O  *
+ * comme cela devrait être le cas selon l'énoncé                    *)
+
+Eval compute in (refl_Pprop (Pfa (Pex (Por (Peq (Pvar 1) (PS (Pvar 0))) (Peq (Pvar 1) (PO))))) nil).
 
 Eval compute in (refl_Pprop (Pfa (Pfa (Pim (Peq (PS (Pvar 1)) (PS (Pvar 0))) (Peq (Pvar 1) (Pvar 0)) ))) nil).
 
@@ -180,7 +187,7 @@ Eval compute in (find_lift (assume (Peq (Pvar 0)(Pvar 0)) (intc (assume (Peq (Pv
 
 (* Logical rules for natural deduction *)
 
-Inductive ded_nat : Ctxt -> Pprop -> Prop :=
+Inductive ded_nat (excluded_middle : bool) : Ctxt -> Pprop -> Prop :=
 
   | axiom G A : ded_nat (assume A (intc G)) (A.|[ren(+ find_lift G)])
 
@@ -222,8 +229,13 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
  * réflection proprement dite.                                      *)
 
 
-Theorem reflection (G : Ctxt) (P : Pprop): forall G : Ctxt, forall P : Pprop, ded_nat G P -> exists l : list nat, exists x : (refl_Ctxt G l) -> (refl_Pprop P l).
-
+Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
+Proof.
+induction 1.
+- simpl; intros; destruct H; induction A; asimpl.
+  -- trivial.
+  -- trivial.
+  -- ainv. 
 
 
 
