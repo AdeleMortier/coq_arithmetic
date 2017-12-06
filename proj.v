@@ -88,10 +88,10 @@ Definition succ_can_extend : Pprop :=
   Pfa (Pfa (Peq (plus (PS (Pvar 1)) (Pvar 0)) (PS (plus (Pvar 1) (Pvar 0))))).
 
 Definition zero_absorbs : Pprop :=
-  Pfa (Peq (times PO (Pvar 0)) (PO)).
+  Pfa (Peq (times (Pvar 0) PO) (PO)).
 
 Definition times_distributes : Pprop :=
-  Pfa (Pfa (Peq (times (PS (Pvar 1)) (Pvar 0)) (plus (times (Pvar 1) (Pvar 0)) (Pvar 0)))).
+  Pfa (Pfa (Peq (times (Pvar 1) (PS (Pvar 0))) (plus (times (Pvar 1) (Pvar 0)) (Pvar 1)))).
 
 (* On ajoute aussi le schéma de récurrence, paramétré par un objet  *
  * de type Pprop                                                    *)
@@ -118,9 +118,9 @@ Definition elimination : Pprop :=
 
 
 (* Définition du contexte Γ utilisé dans la déduction naturelle:    *
- * nilc est les contexte vide                                       *
- * intc ajoute une déclaration de variable à un contexte            *
- * assume ajoute une proposition à un contexte                      *)
+ *   -- nilc est les contexte vide                                  *
+ *   -- intc ajoute une déclaration de variable à un contexte       *
+ *   -- assume ajoute une proposition à un contexte                 *)
 
 Inductive Ctxt : Type :=
   | nilc : Ctxt
@@ -185,7 +185,7 @@ Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
 Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) : Prop :=
   match C with
     | nilc => False
-    | intc D => forall x, refl_Ctxt D (cons x l)
+    | intc D => forall (x : nat), refl_Ctxt D l
     | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l)
   end.
 
@@ -246,13 +246,71 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
  * type tr(Γ) → tr(P). C’est cette dernière étape qui constitue la  *
  * réflection proprement dite.                                      *)
 
-(*Lemma weakening (A : Pprop) (x : nat) : refl_Pprop A nil -> refl_Pprop A (x :: nil).
+(* On peut commencer par prouver que les axiomes de l'arithmétique  *
+ * de Peano définis ci-dessus sont prouvables dans Coq.             *)
+
+Theorem succ_is_non_zero_is_provable : refl_Pprop succ_is_non_zero nil.
+Proof.
+simpl refl_Pprop; apply PeanoNat.Nat.neq_succ_0.
+Qed.
+
+Theorem eq_succ_implies_eq_is_provable : refl_Pprop eq_succ_implies_eq nil.
+Proof.
+simpl refl_Pprop; apply PeanoNat.Nat.succ_inj.
+Qed.
+
+Theorem zero_is_neutral_is_provable : refl_Pprop zero_is_neutral nil.
+Proof.
+simpl refl_Pprop; apply PeanoNat.Nat.add_0_r.
+Qed.
+
+Theorem succ_can_extend_is_provable : refl_Pprop succ_can_extend nil.
+Proof.
+simpl refl_Pprop; trivial.
+Qed.
+
+Theorem zero_absorbs_is_provable : refl_Pprop zero_absorbs nil.
+Proof.
+simpl refl_Pprop; apply PeanoNat.Nat.mul_0_r.
+Qed.
+
+Theorem times_distributes_is_provable : refl_Pprop times_distributes nil.
+Proof.
+simpl refl_Pprop; apply PeanoNat.Nat.mul_succ_r.
+Qed.
+
+(*
+
+Theorem recurrence_scheme_is_provable : forall P : Pprop, (refl_Pprop (recurrence_scheme P) nil).
+Proof.
+intros.
+simpl refl_Pprop.
+intros.
+revert.
+
 *)
+
+(*
+Lemma weakening (A : Pprop) (x : nat) : refl_Pprop A nil -> refl_Pprop A (x :: nil).
+Proof.
+intros.
+induction A.
+- simpl refl_Pprop; simpl refl_Pprop in H; trivial.
+- simpl refl_Pprop; exact I.
+- simpl refl_Pprop; simpl refl_Pprop in H.
+induction p, p0.
+  -- trivial.
+  -- simpl refl_Pnat.
+*)
+
+
+
+
 Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
 Proof.
 induction 1.
 - simpl; intros; destruct H; trivial.
-- simpl; intros; destruct H0; apply IHded_nat; trivial.
+- simpl; intros; destruct H0; apply IHded_nat; pose (H2 := H1 0); trivial.
 - simpl; intros; apply IHded_nat; simpl; refine (conj _ _); trivial.
 - intros; simpl refl_Pprop in IHded_nat1; apply IHded_nat1; trivial; apply IHded_nat2; trivial.
 - simpl; intros; refine (conj _ _).
