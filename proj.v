@@ -187,37 +187,37 @@ Eval compute in (find_lift (assume (Peq (Pvar 0)(Pvar 0)) (intc (assume (Peq (Pv
 
 (* Logical rules for natural deduction *)
 
-Inductive ded_nat (excluded_middle : bool) : Ctxt -> Pprop -> Prop :=
+Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 
-  | axiom G A : ded_nat (assume A (intc G)) (A.|[ren(+ find_lift G)])
+  | axiom G A : ded_nat (assume A G) A
 
-  | weak G A B : ded_nat G A -> ded_nat (assume B (intc G)) A (* ok *)
+  | weak G A B : ded_nat G A -> ded_nat (assume B (intc G)) A 
 
-  | impi G A B : ded_nat (assume A (intc G)) B -> ded_nat G (Pim A B) (* ok *)
+  | impi G A B : ded_nat (assume A (intc G)) B -> ded_nat G (Pim A B) 
 
-  | impe G A B : ded_nat G (Pim A B) -> ded_nat G A -> ded_nat G B (* ok *)
+  | impe G A B : ded_nat G (Pim A B) -> ded_nat G A -> ded_nat G B 
 
-  | andi G A B : ded_nat G A -> ded_nat G B -> ded_nat G (Pan A B) (* ok *)
+  | andi G A B : ded_nat G A -> ded_nat G B -> ded_nat G (Pan A B)
 
-  | andle G A B : ded_nat G (Pan A B) -> ded_nat G A (* ok *)
+  | andle G A B : ded_nat G (Pan A B) -> ded_nat G A
 
-  | andre G A B : ded_nat G (Pan A B) -> ded_nat G B (* ok *)
+  | andre G A B : ded_nat G (Pan A B) -> ded_nat G B
 
-  | orli G A B : ded_nat G A -> ded_nat G (Por A B) (* ok *)
+  | orli G A B : ded_nat G A -> ded_nat G (Por A B)
 
-  | orri G A B : ded_nat G B -> ded_nat G (Por A B) (* ok *)
+  | orri G A B : ded_nat G B -> ded_nat G (Por A B)
 
-  | ore G A B C : ded_nat G (Por A B) -> ded_nat (assume A (intc G)) C -> ded_nat (assume B (intc G)) C -> ded_nat G C (* ok *)
+  | ore G A B C : ded_nat G (Por A B) -> ded_nat (assume A (intc G)) C -> ded_nat (assume B (intc G)) C -> ded_nat G C
 
-  | bote G A : ded_nat G Pfalse -> ded_nat G A (* ok *)
+  | bote G A : ded_nat G Pfalse -> ded_nat G A
 
-  | foralli G A : ded_nat G A -> ded_nat G (Pfa A) (* ok *)
+  | foralli G A : ded_nat (intc G) A -> ded_nat G (Pfa A)
 
-  | foralle G A t : ded_nat G (Pfa A) -> ded_nat G (A.|[t.:ids]) (* ok *)
+  | foralle G A t : ded_nat G (Pfa A) -> ded_nat G (A.|[t.:ids])
 
-  | existi G A t : ded_nat G (A.|[t.:ids]) -> ded_nat G (Pex A) (* ok *)
+  | existi G A t : ded_nat G (A.|[t.:ids]) -> ded_nat G (Pex A)
 
-  | existe G A C : ded_nat G (Pex A) -> ded_nat (assume A (intc G)) C.|[ren(+1)] -> ded_nat G C.
+  | existe G A C : ded_nat G (Pex A) -> ded_nat (assume A (intc G)) (C.|[ren(+1)]) -> ded_nat G C.
 
 
 (* 4.2 Questions : implémentation                                   *
@@ -263,6 +263,7 @@ Fixpoint Friedman_ctxt (C : Ctxt) (A : Pprop) :=
 Lemma peano_to_heyting G P : ded_nat G P -> ded_nat_heyting G P.
 Defined.
 *)
+
 Fixpoint not_quant (P : Pprop) : Prop :=
   match P with
     | Pfalse => True
