@@ -162,13 +162,13 @@ Axiom recurrence_scheme : forall (P : Pprop), refl_Pprop (P.|[PO/]) nil -> refl_
 
 (* Axiom recurrence_scheme : forall (P : Pprop), refl_Pprop (Pim (P.|[PO/]) (Pim (Pfa (Pim (P (Pvar 0)) (P (PS (Pvar 0))))) (Pfa (P (Pvar 0))))) nil. *)
 
-Fixpoint find_lift (G : Ctxt): nat :=
+(* Fixpoint find_lift (G : Ctxt): nat :=
   match G with
   | nilc => 0
   | intc H => find_lift H + 1
   | assume _ H => find_lift H
   end.
-
+*)
 
 
 (*
@@ -232,12 +232,10 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
 Proof.
 induction 1.
-- simpl; intros; destruct H; induction A; asimpl.
-  -- trivial.
-  -- trivial.
-  -- ainv. 
-
-
+- simpl; intros; destruct H; trivial.
+- simpl; intros; destruct H0; apply IHded_nat; trivial.
+- simpl; intros; apply IHded_nat; simpl; refine (conj _ _); trivial.
+- intros; pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
 
 Fixpoint Friedman (P : Pprop) (A : Pprop) : Pprop :=
   match P with
@@ -249,7 +247,7 @@ Fixpoint Friedman (P : Pprop) (A : Pprop) : Pprop :=
     | Pim B C => Pim (Pim (Pim (Friedman B A) A) A) (Pim (Pim (Friedman C A) A) A)
     | Pan B C => Pan (Pim (Pim (Friedman B A) A) A) (Pim (Pim (Friedman C A) A) A)
     | Por B C => Por (Pim (Pim (Friedman B A) A) A) (Pim (Pim (Friedman C A) A) A)
-    | dummy x => Ptrue
+    | dummy x => Por (dummy x) A 
   end.
 
 Fixpoint Friedman_ctxt (C : Ctxt) (A : Pprop) :=
