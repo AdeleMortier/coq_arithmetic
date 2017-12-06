@@ -26,6 +26,7 @@ Inductive Pprop :=
 Notation "'Pno' f" := (Pim f Pfalse) (at level 0).
 
 
+
 (* Les déclarations suivantes proviennent du manuel d'autosubst et  *
  * permettent de faire fonctionner la substitution sur les          *
  * expressions de type Pnat et Pprop.                               *)
@@ -48,90 +49,18 @@ Instance SubstLemmas_Pprop : SubstLemmas Pprop. derive. Qed.
 
 
 
-(* Test for substitution on expressions of type Pnat                *)
+(* On teste la substitution sur des expressions de type Pnat        *)
 
 Check ((Pvar 0).[PO/]).
 Eval compute in ((Pvar 0).[PO/]).
 
-
-
-(* Test for substitution on expressions of type Pprop               *)
+(* On teste la substitution sur des expressions de type Pprop       *)
 
 Check (Pfa (Peq (Pvar 0) (Pvar 0))).
 Eval compute in (Pfalse.|[PO/]).
 Eval compute in ((Peq (Pvar 0) (Pvar 0)).|[PO/]).
 Eval compute in ((Peq (Pvar 0) (Pvar 1)).|[PO.:ids]).
 
-
-
-(* Definition of the context (for natural deduction)                *
- * nilc is the empty context                                        *
- * intc is a counter for variables present in the context           *
- * assume appends a proposition to a context                        *)
-
-Inductive Ctxt : Type :=
-  | nilc : Ctxt
-  | intc : Ctxt -> Ctxt 
-  | assume : Pprop -> Ctxt -> Ctxt. 
-
-
-
-(* var_to_nat is a function that retrieves the x-th element in a list of nat. *
- * The list l stores natural values that correspond to Peano-variables :      *
- * the i_th element of the list l is thus the nat-interpretation of the       *
- * Peano-variable i                                                           *)
-
-Fixpoint var_to_nat (x : var) (l : list nat) : nat :=
-  match x, l  with
-   | 0, (cons v _) => v
-   | S y, (cons _ l)  => (var_to_nat y l)
-   | _, _ => 0
-  end.
-
-
-Fixpoint refl_Pnat (x : Pnat) (l : list nat) : nat :=
-  match x with
-   | PO => O
-   | PS x => S (refl_Pnat x l)
-   | plus y z => (refl_Pnat y l) + (refl_Pnat z l)
-   | times y z => (refl_Pnat y l) * (refl_Pnat z l)
-   | Pvar y => var_to_nat y l
-  end.
-
-Eval compute in ((Pvar O).[ren(+ 2)]).
-
-Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
-  match P with
-   | Pfalse => False
-   | Ptrue => True
-   | Peq x y => (refl_Pnat x l) = (refl_Pnat y l)
-    (* if a forall is the n-th binder that is seen by the reflection,
-       then the bound variable x will be the n-th variable stored in
-       the list l. All these variables will be translated into nat
-       using this index, and the function refl_Pnat for a P-variable *) 
-   | Pfa Q => forall (x : nat), refl_Pprop Q (cons x l)
-   | Pex Q => exists (x : nat), refl_Pprop Q (cons x l)
-   | Pim Q R => (refl_Pprop Q l) -> (refl_Pprop R l)
-   | Pan Q R => (refl_Pprop Q l) /\ (refl_Pprop R l)
-   | Por Q R => (refl_Pprop Q l) \/ (refl_Pprop R l)
-   | dummy x => True
-  end.
-
-Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) : Prop :=
-  match C with
-    | nilc => False
-    | intc D => refl_Ctxt D l
-    | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l)
-  end.
-
-
-(* On va tester si refl_Pprop(∀x.∃y.x = S(y) ∨ x = 0) se réduit     *
- * bien vers l’objet de type Prop forall x, exists y, x=(S y)\/x=O  *
- * comme cela devrait être le cas selon l'énoncé                    *)
-
-Eval compute in (refl_Pprop (Pfa (Pex (Por (Peq (Pvar 1) (PS (Pvar 0))) (Peq (Pvar 1) (PO))))) nil).
-
-Eval compute in (refl_Pprop (Pfa (Pfa (Pim (Peq (PS (Pvar 1)) (PS (Pvar 0))) (Peq (Pvar 1) (Pvar 0)) ))) nil).
 
 
 (* On définit les 7 axiomes de Peano :                              *
@@ -174,7 +103,8 @@ Definition recurrence_scheme : Pprop -> Pprop :=
  * permettra d'étendre l'arithmétique de Heyting en l'arithmétique  *
  * de Heyting.                                                      *)
 
-Definition excluded_middle : Pprop -> Pprop := fun (P : Pprop) => (Por P (Pno P)).
+Definition excluded_middle : Pprop -> Pprop :=
+  fun (P : Pprop) => (Por P (Pno P)).
 
 (* Enfin, on définit les propriétés habituelles de l’égalité        *
  * (reflexivité, élimination).                                      *)
@@ -185,6 +115,20 @@ Definition reflexivity : Pprop :=
 Definition elimination : Pprop :=
   Pfa (Pfa (Pfa (Pim (Peq (plus (Pvar 0) (Pvar 1)) (plus (Pvar 0) (Pvar 2))) (Peq (Pvar 1) (Pvar 2))))).
 
+
+
+(* Définition du contexte Γ utilisé dans la déduction naturelle:    *
+ * nilc est les contexte vide                                       *
+ * intc ajoute une déclaration de variable à un contexte            *
+ * assume ajoute une proposition à un contexte                      *)
+
+Inductive Ctxt : Type :=
+  | nilc : Ctxt
+  | intc : Ctxt -> Ctxt 
+  | assume : Pprop -> Ctxt -> Ctxt. 
+
+
+
 (* On définit ensuite un contexte formé par les axiomes qui        *
  * permettent de paramétrer la déduction naturelle, le problème    *
  * étant que le schéma d'induction et le tiers exclu (pour le cas  * 
@@ -194,7 +138,69 @@ Definition HAxioms : Ctxt :=
   assume succ_is_non_zero (assume non_zero_has_succ (assume eq_succ_implies_eq (assume zero_is_neutral (assume succ_can_extend (assume zero_absorbs (assume times_distributes (nilc))))))).
 
 
-(* Règle logiques de la déduction naturelle adaptées aux objets de  *
+
+(* Dans cette section on définit la fonction de réflection.         *
+ * Cette fonction est en fait divisée en trois :                    *
+ *   -- une réflection pour les entiers de Peano de type Pnat;      *
+ *   -- une réflection pour les proposition de Peano de type Pprop; *
+ *   -- une réflection sur les contextes de type Ctxt.              *
+ * On va également paramétriser la fonction de réflection par une   *
+ * interprétation des variables (de type var), qui prend la forme   *
+ * d'une liste de naturels (de type nat). La fonction var_to_nat    *
+ * permet alors de retourner l'interprétation de la variable i en   *
+ * tant que naturel.                                                *)
+
+Fixpoint var_to_nat (x : var) (l : list nat) : nat :=
+  match x, l  with
+   | 0, (cons v _) => v
+   | S y, (cons _ l)  => (var_to_nat y l)
+   | _, _ => 0
+  end.
+
+
+Fixpoint refl_Pnat (x : Pnat) (l : list nat) : nat :=
+  match x with
+   | PO => O
+   | PS x => S (refl_Pnat x l)
+   | plus y z => (refl_Pnat y l) + (refl_Pnat z l)
+   | times y z => (refl_Pnat y l) * (refl_Pnat z l)
+   | Pvar y => var_to_nat y l
+  end.
+
+Eval compute in ((Pvar O).[ren(+ 2)]).
+
+Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
+  match P with
+   | Pfalse => False
+   | Ptrue => True
+   | Peq x y => (refl_Pnat x l) = (refl_Pnat y l)
+   | Pfa Q => forall (x : nat), refl_Pprop Q (cons x l)
+   | Pex Q => exists (x : nat), refl_Pprop Q (cons x l)
+   | Pim Q R => (refl_Pprop Q l) -> (refl_Pprop R l)
+   | Pan Q R => (refl_Pprop Q l) /\ (refl_Pprop R l)
+   | Por Q R => (refl_Pprop Q l) \/ (refl_Pprop R l)
+   | dummy x => True
+  end.
+
+Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) : Prop :=
+  match C with
+    | nilc => False
+    | intc D => forall x, refl_Ctxt D (cons x l)
+    | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l)
+  end.
+
+
+(* On va tester si refl_Pprop(∀x.∃y.x = S(y) ∨ x = 0) se réduit     *
+ * bien vers l’objet de type Prop forall x, exists y, x=(S y)\/x=O  *
+ * comme cela devrait être le cas selon l'énoncé                    *)
+
+Eval compute in (refl_Pprop (Pfa (Pex (Por (Peq (Pvar 1) (PS (Pvar 0))) (Peq (Pvar 1) (PO))))) nil).
+
+Eval compute in (refl_Pprop (Pfa (Pfa (Pim (Peq (PS (Pvar 1)) (PS (Pvar 0))) (Peq (Pvar 1) (Pvar 0)) ))) nil).
+
+
+
+(* Règles logiques de la déduction naturelle adaptées aux objets de *
  * type Pprop et aux contextes de type Ctxt                         *)
 
 Inductive ded_nat : Ctxt -> Pprop -> Prop :=
@@ -240,7 +246,8 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
  * type tr(Γ) → tr(P). C’est cette dernière étape qui constitue la  *
  * réflection proprement dite.                                      *)
 
-
+(*Lemma weakening (A : Pprop) (x : nat) : refl_Pprop A nil -> refl_Pprop A (x :: nil).
+*)
 Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
 Proof.
 induction 1.
@@ -267,7 +274,7 @@ induction 1.
 - intros; simpl refl_Pprop in IHded_nat; pose (H1 := IHded_nat H0); case H1.
 - simpl; intros; exact I.
 - simpl; intros.
-
+simpl refl_Ctxt in IHded_nat.
 
 
 apply (impi G A B).
