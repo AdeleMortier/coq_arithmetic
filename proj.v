@@ -301,9 +301,54 @@ induction A.
 induction p, p0.
   -- trivial.
   -- simpl refl_Pnat.
+
+
+
+
+Lemma permutation (P : Pprop) (t : Pnat) (l : list nat) : refl_Pprop P (refl_Pnat t nil :: l) = refl_Pprop P.|[t/] l.
+Proof.
+induction P; simpl refl_Pprop.
+- trivial.
+- trivial.
+- 
+
+
+
+Lemma weakening (A : Pprop) (t : Pnat) : refl_Pprop (Pfa A) nil -> refl_Pprop A.|[t/] nil.
+Proof.
+induction A; simpl refl_Pprop.
+- intros; pose (H1 := H 0); case H1.
+- intros; exact I.
+- intros.
+pose (H1 := H (refl_Pnat t nil)).
+
+induction p, p0.
+-- autosubst.
+-- asimpl. ainv.
+-- asimpl. ainv. rewrite H1.
+absurd.
 *)
 
 
+
+Lemma perm_Pnat (P : Pnat) (t : Pnat) (l : list nat) : refl_Pnat P (refl_Pnat t nil :: l) = refl_Pnat P.[t/] l.
+Proof.
+admit.
+Admitted.
+
+Lemma perm_Pprop (P : Pprop) (t : Pnat) : refl_Pprop P.|[t/] nil -> refl_Pprop P (refl_Pnat t nil :: nil).
+Proof.
+induction P; simpl refl_Pprop.
+- intros; trivial.
+- intros; trivial.
+- induction p, p0.
+  -- autosubst.
+  -- asimpl; intros; rewrite H. 
+apply eq_S.
+subst.
+
+
+Search (_ = _ -> S _ = S _).
 
 
 Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
@@ -331,13 +376,35 @@ induction 1.
      --- trivial.
 - intros; simpl refl_Pprop in IHded_nat; pose (H1 := IHded_nat H0); case H1.
 - simpl; intros; exact I.
-- simpl; intros.
-simpl refl_Ctxt in IHded_nat.
+- simpl; intros; simpl refl_Ctxt in IHded_nat.
+admit.
+- intros.
+admit.
+- intros.
+induction A; simpl refl_Pprop; simpl refl_Pprop in IHded_nat.
+-- exists 0; apply IHded_nat; trivial.
+-- exists 0; exact I.
+-- exists (refl_Pnat t nil); rewrite perm_Pnat; rewrite perm_Pnat; apply IHded_nat; trivial.
+-- exists (refl_Pnat t nil).
+asimpl in IHded_nat.
+admit.
+-- exists (refl_Pnat t nil).
+admit.
+-- exists (refl_Pnat t nil).
+intros.
 
 
+
+
+ 
+exists (refl_Pnat x nil).
+
+
+Qed.
+(*
 apply (impi G A B).
  pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
-
+*)
 
 Fixpoint Friedman (P : Pprop) (A : Pprop) : Pprop :=
   match P with
@@ -378,9 +445,14 @@ Fixpoint not_quant (P : Pprop) : Prop :=
   end.
 
 
-Lemma friedman_equiv_A_disjunction (P : Pprop) (A : Pprop) : (not_quant P) -> ((Friedman P A -> Por P A) /\ (Por P A -> Friedman P A)).
 
-
+(*Lemma friedman_equiv_A_disj (P : Pprop) (A : Pprop) : (not_quant P) -> ((Friedman P A -> Por P A) /\ (Por P A -> Friedman P A)).
+*)
+Lemma not_quant_decidable (P : Pprop) (A : Pprop) : (refl_Pprop (Friedman P A) nil) \/ (refl_Pprop (Pno (Friedman P A)) nil).
+Proof.
+induction P, A; simpl refl_Pprop.
+- right.
+right.
 
 
 
