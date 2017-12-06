@@ -253,7 +253,21 @@ induction 1.
   -- apply IHded_nat2; trivial.
 - intros; simpl refl_Pprop in IHded_nat; apply IHded_nat; trivial.
 - intros; simpl refl_Pprop in IHded_nat; apply IHded_nat; trivial.
-- 
+- simpl; intros; left; apply IHded_nat; trivial.
+- simpl; intros; right; apply IHded_nat; trivial.
+- intros; simpl refl_Pprop in IHded_nat1.
+  simpl refl_Ctxt in IHded_nat2; simpl refl_Ctxt in IHded_nat3.
+  pose (H3 := IHded_nat1 H2); case H3.
+  -- intros; apply IHded_nat2; refine (conj _ _).
+     --- trivial.
+     --- trivial.
+  -- intros; apply IHded_nat3; refine (conj _ _).
+     --- trivial.
+     --- trivial.
+- intros; simpl refl_Pprop in IHded_nat; pose (H1 := IHded_nat H0); case H1.
+- simpl; intros; exact I.
+- simpl; intros.
+
 
 
 apply (impi G A B).
