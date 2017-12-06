@@ -1,8 +1,8 @@
 From Autosubst Require Import Autosubst.
 
-(* Formalization of Peano's arithmetic.                             *
- * Introduction of the inductive types of Peano naturals and Peano  *
- * formulae                                                         *)
+(* Formalisation de l'arithmétique de Peano                         *
+ * Introduction des types inductifs corespondant aux entiers de     *
+ * Peano (Pnat) et aux propriétés portant sur ces entiers (Pprop)   *)
 
 Inductive Pnat : Set :=
   | PO : Pnat
@@ -22,17 +22,8 @@ Inductive Pprop :=
   | Por : Pprop -> Pprop -> Pprop
   | dummy (_ : var). (* type var -> Pprop *)
 
-(*
-Bind Scope pnat_scope with Pnat.
-Bind Scope pprop_scope with Pprop.
-
-Open Scope pnat_scope.
-Open Scope pprop_scope.
-
-*)
 
 Notation "'Pno' f" := (Pim f Pfalse) (at level 0).
-
 
 
 (* To make autosubst work on custom inductive types Pnat and Pprop  *)
@@ -140,25 +131,68 @@ Eval compute in (refl_Pprop (Pfa (Pex (Por (Peq (Pvar 1) (PS (Pvar 0))) (Peq (Pv
 
 Eval compute in (refl_Pprop (Pfa (Pfa (Pim (Peq (PS (Pvar 1)) (PS (Pvar 0))) (Peq (Pvar 1) (Pvar 0)) ))) nil).
 
-Axiom succ_is_non_zero : refl_Pprop (Pfa (Pno (Peq (PS (Pvar 0)) PO))) nil.
 
-Axiom non_zero_has_succ : refl_Pprop (Pfa (Pex (Pim (Pno (Peq (Pvar 1) PO)) (Peq (PS (Pvar 0)) (Pvar 1))))) nil.
+(* On définit les 7 axiomes de Peano :                              *
+ * 1. ∀x.¬S(x) = 0                                                  *
+ * 2. ∀x.∃y.(¬x = 0 ⇒ S(y) = x)                                     *
+ * 3. ∀x.∀y.(S(x) = S(y) ⇒ x = y)                                   *
+ * 4. ∀x.x + 0 = x                                                  *
+ * 5. ∀x.∀y.S(x) + y = S(x + y)                                     *
+ * 6. ∀x.(0 ∗ x = 0)                                                *
+ * 7. ∀x.∀y.S(x) ∗ y = (x ∗ y) + y                                  *)
 
-Axiom eq_succ_implies_eq : refl_Pprop (Pfa (Pfa (Pim (Peq (PS (Pvar 1)) (PS (Pvar 0))) (Peq (Pvar 1) (Pvar 0)) ))) nil.
+Definition succ_is_non_zero : Pprop :=
+  Pfa (Pno (Peq (PS (Pvar 0)) PO)).
 
-Axiom zero_is_neutral : refl_Pprop (Pfa (Peq (plus (Pvar 0) (PO)) (Pvar 0))) nil.
+Definition non_zero_has_succ : Pprop :=
+  Pfa (Pex (Pim (Pno (Peq (Pvar 1) PO)) (Peq (PS (Pvar 0)) (Pvar 1)))).
 
-Axiom succ_can_extend : refl_Pprop (Pfa (Pfa (Peq (plus (PS (Pvar 1)) (Pvar 0)) (PS (plus (Pvar 1) (Pvar 0)))))) nil.
+Definition eq_succ_implies_eq : Pprop :=
+  Pfa (Pfa (Pim (Peq (PS (Pvar 1)) (PS (Pvar 0))) (Peq (Pvar 1) (Pvar 0)) )).
 
-Axiom zero_absorbs : refl_Pprop (Pfa (Peq (times PO (Pvar 0)) (PO))) nil.
+Definition zero_is_neutral : Pprop :=
+  Pfa (Peq (plus (Pvar 0) (PO)) (Pvar 0)).
 
-Axiom times_distributes : refl_Pprop (Pfa (Pfa (Peq (times (PS (Pvar 1)) (Pvar 0)) (plus (times (Pvar 1) (Pvar 0)) (Pvar 0))))) nil.
+Definition succ_can_extend : Pprop :=
+  Pfa (Pfa (Peq (plus (PS (Pvar 1)) (Pvar 0)) (PS (plus (Pvar 1) (Pvar 0))))).
 
-Axiom reflexivity : refl_Pprop (Pfa (Pfa (Pim (Peq (Pvar 0) (Pvar 1)) (Peq (Pvar 1) (Pvar 0))))) nil.
+Definition zero_absorbs : Pprop :=
+  Pfa (Peq (times PO (Pvar 0)) (PO)).
 
-Axiom elimination : refl_Pprop (Pfa (Pfa (Pfa (Pim (Peq (plus (Pvar 0) (Pvar 1)) (plus (Pvar 0) (Pvar 2))) (Peq (Pvar 1) (Pvar 2)))))) nil.
+Definition times_distributes : Pprop :=
+  Pfa (Pfa (Peq (times (PS (Pvar 1)) (Pvar 0)) (plus (times (Pvar 1) (Pvar 0)) (Pvar 0)))).
 
-Axiom recurrence_scheme : forall (P : Pprop), refl_Pprop (P.|[PO/]) nil -> refl_Pprop (Pfa (Pim (P.|[Pvar 0/]) (P.|[(PS (Pvar 0))/]))) nil -> refl_Pprop (Pfa (P.|[Pvar 0/])) nil.
+(* On ajoute aussi le schéma de récurrence, paramétré par un objet  *
+ * de type Pprop                                                    *)
+
+Definition recurrence_scheme : Pprop -> Pprop :=
+  fun (P : Pprop) => (Pim (P.|[PO/]) (Pim (Pfa (Pim (P.|[Pvar 0/]) (P.|[(PS (Pvar 0))/]))) (Pfa (P.|[Pvar 0/])))).
+
+(* On traite également le tiers exclu comme un axiome, qui          *
+ * permettra d'étendre l'arithmétique de Heyting en l'arithmétique  *
+ * de Heyting.                                                      *)
+
+Definition excluded_middle : Pprop -> Pprop := fun (P : Pprop) => (Por P (Pno P)).
+
+(* Enfin, on définit les propriétés habituelles de l’égalité        *
+ * (reflexivité, élimination).                                      *)
+
+Definition reflexivity : Pprop :=
+  Pfa (Pfa (Pim (Peq (Pvar 0) (Pvar 1)) (Peq (Pvar 1) (Pvar 0)))).
+
+Definition elimination : Pprop :=
+  Pfa (Pfa (Pfa (Pim (Peq (plus (Pvar 0) (Pvar 1)) (plus (Pvar 0) (Pvar 2))) (Peq (Pvar 1) (Pvar 2))))).
+
+(* On définit ensuite deux contextes formés par les axiomes qui     *
+ * permettent de paramétrer la déduction naturelle dans sa version  *
+ * classique ou intuitionniste.                                     *)
+
+Definition HAxioms : Ctxt :=
+  assume succ_is_non_zero (assume non_zero_has_succ (assume eq_succ_implies_eq (assume zero_is_neutral (assume succ_can_extend (assume zero_absorbs (assume times_distributes (nilc))))))).
+
+Definition Paxioms : Ctxt :=
+  assume excluded_middle HAxioms.
+
 
 (* Axiom recurrence_scheme : forall (P : Pprop), refl_Pprop (Pim (P.|[PO/]) (Pim (Pfa (Pim (P (Pvar 0)) (P (PS (Pvar 0))))) (Pfa (P (Pvar 0))))) nil. *)
 
@@ -238,6 +272,8 @@ induction 1.
 - simpl; intros; destruct H0; apply IHded_nat; trivial.
 - simpl; intros; apply IHded_nat; simpl; refine (conj _ _); trivial.
 - intros.
+
+apply (impi G A B).
  pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
 
 
