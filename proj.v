@@ -211,6 +211,8 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 
   | bote G A : ded_nat G Pfalse -> ded_nat G A
 
+  | topi G : ded_nat G Ptrue
+
   | foralli G A : ded_nat (intc G) A -> ded_nat G (Pfa A)
 
   | foralle G A t : ded_nat G (Pfa A) -> ded_nat G (A.|[t.:ids])
@@ -235,7 +237,9 @@ induction 1.
 - simpl; intros; destruct H; trivial.
 - simpl; intros; destruct H0; apply IHded_nat; trivial.
 - simpl; intros; apply IHded_nat; simpl; refine (conj _ _); trivial.
-- intros; pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
+- intros.
+ pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
+
 
 Fixpoint Friedman (P : Pprop) (A : Pprop) : Pprop :=
   match P with
