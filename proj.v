@@ -26,7 +26,9 @@ Inductive Pprop :=
 Notation "'Pno' f" := (Pim f Pfalse) (at level 0).
 
 
-(* To make autosubst work on custom inductive types Pnat and Pprop  *)
+(* Les déclarations suivantes proviennent du manuel d'autosubst et  *
+ * permettent de faire fonctionner la substitution sur les          *
+ * expressions de type Pnat et Pprop.                               *)
 
 Instance Ids_Pnat : Ids Pnat. derive. Defined.
 Instance Rename_Pnat : Rename Pnat. derive. Defined.
@@ -183,43 +185,17 @@ Definition reflexivity : Pprop :=
 Definition elimination : Pprop :=
   Pfa (Pfa (Pfa (Pim (Peq (plus (Pvar 0) (Pvar 1)) (plus (Pvar 0) (Pvar 2))) (Peq (Pvar 1) (Pvar 2))))).
 
-(* On définit ensuite deux contextes formés par les axiomes qui     *
- * permettent de paramétrer la déduction naturelle dans sa version  *
- * classique ou intuitionniste.                                     *)
+(* On définit ensuite un contexte formé par les axiomes qui        *
+ * permettent de paramétrer la déduction naturelle, le problème    *
+ * étant que le schéma d'induction et le tiers exclu (pour le cas  * 
+ * de la logique classique) ne peuvent être ajoutés à ce contexte  *)
 
 Definition HAxioms : Ctxt :=
   assume succ_is_non_zero (assume non_zero_has_succ (assume eq_succ_implies_eq (assume zero_is_neutral (assume succ_can_extend (assume zero_absorbs (assume times_distributes (nilc))))))).
 
-Definition Paxioms : Ctxt :=
-  assume excluded_middle HAxioms.
 
-
-(* Axiom recurrence_scheme : forall (P : Pprop), refl_Pprop (Pim (P.|[PO/]) (Pim (Pfa (Pim (P (Pvar 0)) (P (PS (Pvar 0))))) (Pfa (P (Pvar 0))))) nil. *)
-
-(* Fixpoint find_lift (G : Ctxt): nat :=
-  match G with
-  | nilc => 0
-  | intc H => find_lift H + 1
-  | assume _ H => find_lift H
-  end.
-*)
-
-
-(*
-Fixpoint is_free (A : Prop) (x : Pnat) := 
-
-Fixpoint up_free (A : Pprop) : Pnat -> Pnat := fun x => if (is_free x A) then (PS x) else x.
-
-
-Fixpoint up (C : Pprop) (A : Pprop) : Pprop := C.[up_free A].
-
-
-Eval compute in (find_lift (assume (Peq (Pvar 0)(Pvar 0)) (intc (assume (Peq (Pvar 0) PO) (intc nilc))))).
-
-*)
-
-
-(* Logical rules for natural deduction *)
+(* Règle logiques de la déduction naturelle adaptées aux objets de  *
+ * type Pprop et aux contextes de type Ctxt                         *)
 
 Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 
@@ -271,7 +247,14 @@ induction 1.
 - simpl; intros; destruct H; trivial.
 - simpl; intros; destruct H0; apply IHded_nat; trivial.
 - simpl; intros; apply IHded_nat; simpl; refine (conj _ _); trivial.
-- intros.
+- intros; simpl refl_Pprop in IHded_nat1; apply IHded_nat1; trivial; apply IHded_nat2; trivial.
+- simpl; intros; refine (conj _ _).
+  -- apply IHded_nat1; trivial.
+  -- apply IHded_nat2; trivial.
+- intros; simpl refl_Pprop in IHded_nat; apply IHded_nat; trivial.
+- intros; simpl refl_Pprop in IHded_nat; apply IHded_nat; trivial.
+- 
+
 
 apply (impi G A B).
  pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
