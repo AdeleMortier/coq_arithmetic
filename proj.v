@@ -350,67 +350,6 @@ revert.
 
 *)
 
-(*
-Lemma weakening (A : Pprop) (x : nat) : refl_Pprop A nil -> refl_Pprop A (x :: nil).
-Proof.
-intros.
-induction A.
-- simpl refl_Pprop; simpl refl_Pprop in H; trivial.
-- simpl refl_Pprop; exact I.
-- simpl refl_Pprop; simpl refl_Pprop in H.
-induction p, p0.
-  -- trivial.
-  -- simpl refl_Pnat.
-
-
-
-
-Lemma permutation (P : Pprop) (t : Pnat) (l : list nat) : refl_Pprop P (refl_Pnat t nil :: l) = refl_Pprop P.|[t/] l.
-Proof.
-induction P; simpl refl_Pprop.
-- trivial.
-- trivial.
-- 
-
-
-
-Lemma weakening (A : Pprop) (t : Pnat) : refl_Pprop (Pfa A) nil -> refl_Pprop A.|[t/] nil.
-Proof.
-induction A; simpl refl_Pprop.
-- intros; pose (H1 := H 0); case H1.
-- intros; exact I.
-- intros.
-pose (H1 := H (refl_Pnat t nil)).
-
-induction p, p0.
--- autosubst.
--- asimpl. ainv.
--- asimpl. ainv. rewrite H1.
-absurd.
-*)
-
-
-
-Lemma perm_Pnat (P : Pnat) (t : Pnat) (l : list nat) : refl_Pnat P (refl_Pnat t nil :: l) = refl_Pnat P.[t/] l.
-Proof.
-admit.
-Admitted.
-
-Lemma perm_Pprop (P : Pprop) (t : Pnat) : refl_Pprop P.|[t/] nil -> refl_Pprop P (refl_Pnat t nil :: nil).
-Proof.
-induction P; simpl refl_Pprop.
-- intros; trivial.
-- intros; trivial.
-- induction p, p0.
-  -- autosubst.
-  -- asimpl; intros; rewrite H. 
-apply eq_S.
-subst.
-Abort.
-
-
-
-
 Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
 Proof.
 induction 1.
@@ -438,26 +377,13 @@ induction 1.
 - simpl; intros; exact I.
 - simpl.
  intros; simpl refl_Ctxt in IHded_nat.
-admit.
-- intros.
-admit.
-- intros.
-induction A; simpl refl_Pprop; simpl refl_Pprop in IHded_nat.
--- exists 0; apply IHded_nat; trivial.
--- exists 0; exact I.
--- exists (refl_Pnat t nil); rewrite perm_Pnat; rewrite perm_Pnat; apply IHded_nat; trivial.
--- exists (refl_Pnat t nil).
-asimpl in IHded_nat.
-admit.
--- exists (refl_Pnat t nil).
-admit.
--- exists (refl_Pnat t nil).
-intros.
 
+Admitted.
 
-
-
- 
+(* La preuve du théorème de reflection permettrait de montrer que   *
+ * tout ce qui est prouvable dans notre formalisme intuitionniste   *
+ * est aussi prouvable dans Coq, autrement dit que notre formalisme *
+ * est consistant avec Coq.                                         *)
 
 
 (* Dans cette section on définit la traduction de Friedman pour les *
@@ -507,11 +433,14 @@ Fixpoint not_quant (P : Pprop) : Prop :=
  * l’arithmétique de Peano, il existe une dérivation de             *
  * Γ^A t ¬^A ¬^A P^A dans l’arithmétique de Heyting.                *)  
 
-Lemma peano_heyting (P : Pprop) (C : Ctxt) (A : Pprop) : (ded_nat C P ) -> ded_nat (Friedman_ctxt C A) (Pim (Pim (Friedman P A) A) A).
+Lemma Peano_Heyting (P : Pprop) (C : Ctxt) (A : Pprop) : (ded_nat_em C P ) -> ded_nat (Friedman_ctxt C A) (Pim (Pim (Friedman P A) A) A).
 Proof.
 induction 1.
 - simpl.
-apply (impi ((assume (Friedman A0 A) (Friedman_ctxt G A))) ((Pim (Friedman A0 A) A)) (A)).
+  apply (impi ((assume (Friedman A0 A) (Friedman_ctxt G A))) ((Pim (Friedman A0 A) A)) (A)).
+  apply (impe (assume (Pim (Friedman A0 A) A) (assume (Friedman A0 A) (Friedman_ctxt G A))) (Friedman A0 A) A).
+ -- apply (axiom ((assume (Friedman A0 A) (Friedman_ctxt G A))) (Pim (Friedman A0 A) A)).
+ -- apply 
 
 
 (*Lemma friedman_equiv_A_disj (P : Pprop) (A : Pprop) : (not_quant P) -> ((Friedman P A -> Por P A) /\ (Por P A -> Friedman P A)).
