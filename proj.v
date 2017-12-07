@@ -1,4 +1,4 @@
-From Autosubst Require Import Autosubst.
+  From Autosubst Require Import Autosubst.
 
 (* Formalisation de l'arithmétique de Peano                         *
  * Introduction des types inductifs corespondant aux entiers de     *
@@ -167,6 +167,8 @@ Fixpoint refl_Pnat (x : Pnat) (l : list nat) : nat :=
    | Pvar y => var_to_nat y l
   end.
 
+Eval compute in (refl_Pnat (Pvar 0)).
+
 Eval compute in ((Pvar O).[ren(+ 2)]).
 
 Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
@@ -182,15 +184,35 @@ Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
    | dummy x => True
   end.
 
-Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) : Prop :=
-  match C with
-    | nilc => False
-    | intc D => forall (x : nat), refl_Ctxt D l
-    | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l)
+(* On implémente une fonction de shift de liste qui permet de       *
+ * décaler l'interprétation des variables libres dans le contexte   *
+ * à chaque fois que l'on rencontre un intc (ainsi par exemple,     *
+ * l'interprétation de Pvar 0 après avoir croisé deux intc devra    *
+ * devenir l'interprétation de Pvar 3).                             *)
+
+Fixpoint shift (l : list nat) (b : nat) : list nat :=
+  match l, b with
+    | nil, _ => nil
+    | m, 0 => m
+    | (cons x m), S c => shift m c
   end.
 
+Eval compute in (shift (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 nil))))) 3).
 
-(* On va tester si refl_Pprop(∀x.∃y.x = S(y) ∨ x = 0) se réduit     *
+Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) (b : nat) : Prop :=
+  match C with
+    | nilc => True
+    | intc D => refl_Ctxt D (shift l b) (b+1)
+    | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l b)
+  end.
+
+Fixpoint refl_C (C : Ctxt) : Prop :=
+  forall l : list nat, refl_Ctxt C l 0.
+
+Eval compute in (refl_C(assume (Peq (Pvar 0) (PS (PS PO))) (intc (assume (Peq (Pvar 0) (Pvar 0)) (intc (assume (Peq (Pvar 0) (PO)) (intc nilc))))))).
+
+
+(* On va tester si refl_Pprop (∀x.∃y.x = S(y) ∨ x = 0) se réduit    *
  * bien vers l’objet de type Prop forall x, exists y, x=(S y)\/x=O  *
  * comme cela devrait être le cas selon l'énoncé                    *)
 
@@ -207,9 +229,9 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 
   | axiom G A : ded_nat (assume A G) A
 
-  | weak G A B : ded_nat G A -> ded_nat (assume B (intc G)) A 
+  | weak G A B : ded_nat G A -> ded_nat (assume B G) A 
 
-  | impi G A B : ded_nat (assume A (intc G)) B -> ded_nat G (Pim A B) 
+  | impi G A B : ded_nat (assume A G) B -> ded_nat G (Pim A B) 
 
   | impe G A B : ded_nat G (Pim A B) -> ded_nat G A -> ded_nat G B 
 
@@ -223,7 +245,7 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 
   | orri G A B : ded_nat G B -> ded_nat G (Por A B)
 
-  | ore G A B C : ded_nat G (Por A B) -> ded_nat (assume A (intc G)) C -> ded_nat (assume B (intc G)) C -> ded_nat G C
+  | ore G A B C : ded_nat G (Por A B) -> ded_nat (assume A G) C -> ded_nat (assume B G) C -> ded_nat G C
 
   | bote G A : ded_nat G Pfalse -> ded_nat G A
 
@@ -248,6 +270,7 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 
 (* On peut commencer par prouver que les axiomes de l'arithmétique  *
  * de Peano définis ci-dessus sont prouvables dans Coq.             *)
+
 
 Theorem succ_is_non_zero_is_provable : refl_Pprop succ_is_non_zero nil.
 Proof.
@@ -346,16 +369,17 @@ induction P; simpl refl_Pprop.
   -- asimpl; intros; rewrite H. 
 apply eq_S.
 subst.
+Abort.
 
 
-Search (_ = _ -> S _ = S _).
 
 
-Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
+Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil 0) -> (refl_Pprop P nil).
 Proof.
 induction 1.
 - simpl; intros; destruct H; trivial.
-- simpl; intros; destruct H0; apply IHded_nat; pose (H2 := H1 0); trivial.
+- simpl; intros; destruct H0; apply IHded_nat.
+pose (H2 := H1 0); trivial.
 - simpl; intros; apply IHded_nat; simpl; refine (conj _ _); trivial.
 - intros; simpl refl_Pprop in IHded_nat1; apply IHded_nat1; trivial; apply IHded_nat2; trivial.
 - simpl; intros; refine (conj _ _).
@@ -376,7 +400,8 @@ induction 1.
      --- trivial.
 - intros; simpl refl_Pprop in IHded_nat; pose (H1 := IHded_nat H0); case H1.
 - simpl; intros; exact I.
-- simpl; intros; simpl refl_Ctxt in IHded_nat.
+- simpl.
+ intros; simpl refl_Ctxt in IHded_nat.
 admit.
 - intros.
 admit.
@@ -397,10 +422,10 @@ intros.
 
 
  
-exists (refl_Pnat x nil).
 
 
-Qed.
+
+
 (*
 apply (impi G A B).
  pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
@@ -444,6 +469,12 @@ Fixpoint not_quant (P : Pprop) : Prop :=
     | dummy x => True
   end.
 
+
+Lemma peano_heyting (P : Pprop) (C : Ctxt) (A : Pprop) : ded_nat C P -> ded_nat (Friedman_ctxt C A) (Pim (Pim (Friedman P A) A) A).
+Proof.
+induction 1.
+- simpl.
+apply (impi ((assume (Friedman A0 A) (Friedman_ctxt G A))) ((Pim (Friedman A0 A) A)) (A)).
 
 
 (*Lemma friedman_equiv_A_disj (P : Pprop) (A : Pprop) : (not_quant P) -> ((Friedman P A -> Por P A) /\ (Por P A -> Friedman P A)).
