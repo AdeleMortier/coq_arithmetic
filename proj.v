@@ -217,8 +217,12 @@ Eval compute in (refl_Ctxt (intc (assume (Peq (Pvar 0) (Pvar 0)) (intc (assume (
 
 
 
-(* Règles logiques de la déduction naturelle adaptées aux objets de *
- * type Pprop et aux contextes de type Ctxt                         *)
+(* Dans cette section on définit les règles logiques de la          *
+ * déduction naturelle adaptées aux objets de type Pprop et aux     *
+ * contextes de type Ctxt. La définition est 'dédoublée' en une     *
+ * définition 'intuitionniste' (sans règle em) et une définition    *
+ * 'classique' (avec une règle em) : c'est un peu maladroit mais je *
+ * n'ai pas réussi à faire mieux malheureusement.                   *)
 
 Inductive ded_nat : Ctxt -> Pprop -> Prop :=
 
@@ -253,6 +257,44 @@ Inductive ded_nat : Ctxt -> Pprop -> Prop :=
   | existi G A t : ded_nat G (A.|[t.:ids]) -> ded_nat G (Pex A)
 
   | existe G A C : ded_nat G (Pex A) -> ded_nat (assume A (intc G)) (C.|[ren(+1)]) -> ded_nat G C.
+
+
+
+Inductive ded_nat_em : Ctxt -> Pprop -> Prop :=
+
+  | axiom_em G A : ded_nat_em (assume A G) A
+
+  | weak_em G A B : ded_nat_em G A -> ded_nat_em (assume B G) A 
+
+  | impi_em G A B : ded_nat_em (assume A G) B -> ded_nat_em G (Pim A B) 
+
+  | impe_em G A B : ded_nat_em G (Pim A B) -> ded_nat_em G A -> ded_nat_em G B 
+
+  | andi_em G A B : ded_nat_em G A -> ded_nat_em G B -> ded_nat_em G (Pan A B)
+
+  | andle_em G A B : ded_nat_em G (Pan A B) -> ded_nat_em G A
+
+  | andre_em G A B : ded_nat_em G (Pan A B) -> ded_nat_em G B
+
+  | orli_em G A B : ded_nat_em G A -> ded_nat_em G (Por A B)
+
+  | orri_em G A B : ded_nat_em G B -> ded_nat_em G (Por A B)
+
+  | ore_em G A B C : ded_nat_em G (Por A B) -> ded_nat_em (assume A G) C -> ded_nat_em (assume B G) C -> ded_nat_em G C
+
+  | bote_em G A : ded_nat_em G Pfalse -> ded_nat_em G A
+
+  | topi_em G : ded_nat_em G Ptrue
+
+  | foralli_em G A : ded_nat_em (intc G) A -> ded_nat_em G (Pfa A)
+
+  | foralle_em G A t : ded_nat_em G (Pfa A) -> ded_nat_em G (A.|[t.:ids])
+
+  | existi_em G A t : ded_nat_em G (A.|[t.:ids]) -> ded_nat_em G (Pex A)
+
+  | existe_em G A C : ded_nat_em G (Pex A) -> ded_nat_em (assume A (intc G)) (C.|[ren(+1)]) -> ded_nat_em G C
+
+  | em G A : ded_nat_em G (Por A (Pno A)).
 
 
 (* 4.2 Questions : implémentation                                   *
@@ -460,7 +502,12 @@ Fixpoint not_quant (P : Pprop) : Prop :=
   end.
 
 
-Lemma peano_heyting (P : Pprop) (C : Ctxt) (A : Pprop) : ded_nat C P -> ded_nat (Friedman_ctxt C A) (Pim (Pim (Friedman P A) A) A).
+(* Lemme 1 On étend, de manière triviale, la transformée par double *
+ * négation aux contextes. S’il existe une dérivation de Γ t P dans *
+ * l’arithmétique de Peano, il existe une dérivation de             *
+ * Γ^A t ¬^A ¬^A P^A dans l’arithmétique de Heyting.                *)  
+
+Lemma peano_heyting (P : Pprop) (C : Ctxt) (A : Pprop) : (ded_nat C P ) -> ded_nat (Friedman_ctxt C A) (Pim (Pim (Friedman P A) A) A).
 Proof.
 induction 1.
 - simpl.
