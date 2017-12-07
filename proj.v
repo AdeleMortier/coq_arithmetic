@@ -118,21 +118,32 @@ Definition elimination : Pprop :=
 
 
 (* Définition du contexte Γ utilisé dans la déduction naturelle:    *
- *   -- nilc est les contexte vide                                  *
- *   -- intc ajoute une déclaration de variable à un contexte       *
- *   -- assume ajoute une proposition à un contexte                 *)
+ *   -- nilc est les contexte vide;                                 *
+ *   -- intc signale une déclaration de variable;                   *
+ *   -- assume ajoute une proposition (contenant éventuellement des *
+ *      variables libres) à un contexte.                            *
+ * Note : on suppose qu'un contexte bien formé est un contexte où   *
+ * il n'existe pas de formule contenant de variable libre non liée  *
+ * par un intc, càd que l'on ne pourra écrire Pvar k dans une       *
+ * formule que si l'on a traversé au moins k+1 'binders' intc.      *)
 
 Inductive Ctxt : Type :=
   | nilc : Ctxt
   | intc : Ctxt -> Ctxt 
   | assume : Pprop -> Ctxt -> Ctxt. 
 
+(* On teste la définition du contexte sur le contexte               *
+ * [x : nat; x = x; y : nat; y = 2]                                 *
+ * Note : on choisit de placer les déclarations de variables en     *
+ * amont des propositions qui les concernent, afin de faciliter la  *
+ * réflection sur les contextes dans la suite.                      *)
 
+Eval compute in (intc (assume (Peq (Pvar 0) (Pvar 0)) (intc (assume (Peq (Pvar 0) (PS (PS (PO)))) (nilc))))).
 
-(* On définit ensuite un contexte formé par les axiomes qui        *
- * permettent de paramétrer la déduction naturelle, le problème    *
- * étant que le schéma d'induction et le tiers exclu (pour le cas  * 
- * de la logique classique) ne peuvent être ajoutés à ce contexte  *)
+(* On définit ensuite un contexte formé par les axiomes qui         *
+ * permettent de paramétrer la déduction naturelle, le problème     *
+ * étant que le schéma d'induction et le tiers exclu (pour le cas   * 
+ * de la logique classique) ne peuvent être ajoutés à ce contexte   *)
 
 Definition HAxioms : Ctxt :=
   assume succ_is_non_zero (assume non_zero_has_succ (assume eq_succ_implies_eq (assume zero_is_neutral (assume succ_can_extend (assume zero_absorbs (assume times_distributes (nilc))))))).
@@ -144,7 +155,7 @@ Definition HAxioms : Ctxt :=
  *   -- une réflection pour les entiers de Peano de type Pnat;      *
  *   -- une réflection pour les proposition de Peano de type Pprop; *
  *   -- une réflection sur les contextes de type Ctxt.              *
- * On va également paramétriser la fonction de réflection par une   *
+ * On va également paramétrer la fonction de réflection par une     *
  * interprétation des variables (de type var), qui prend la forme   *
  * d'une liste de naturels (de type nat). La fonction var_to_nat    *
  * permet alors de retourner l'interprétation de la variable i en   *
@@ -167,9 +178,6 @@ Fixpoint refl_Pnat (x : Pnat) (l : list nat) : nat :=
    | Pvar y => var_to_nat y l
   end.
 
-Eval compute in (refl_Pnat (Pvar 0)).
-
-Eval compute in ((Pvar O).[ren(+ 2)]).
 
 Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
   match P with
@@ -184,32 +192,13 @@ Fixpoint refl_Pprop (P : Pprop) (l : list nat) : Prop :=
    | dummy x => True
   end.
 
-(* On implémente une fonction de shift de liste qui permet de       *
- * décaler l'interprétation des variables libres dans le contexte   *
- * à chaque fois que l'on rencontre un intc (ainsi par exemple,     *
- * l'interprétation de Pvar 0 après avoir croisé deux intc devra    *
- * devenir l'interprétation de Pvar 3).                             *)
 
-Fixpoint shift (l : list nat) (b : nat) : list nat :=
-  match l, b with
-    | nil, _ => nil
-    | m, 0 => m
-    | (cons x m), S c => shift m c
-  end.
-
-Eval compute in (shift (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 nil))))) 3).
-
-Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) (b : nat) : Prop :=
+Fixpoint refl_Ctxt (C : Ctxt) (l : list nat) : Prop :=
   match C with
     | nilc => True
-    | intc D => refl_Ctxt D (shift l b) (b+1)
-    | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l b)
+    | intc D => forall x, refl_Ctxt D (cons x l)
+    | assume P D => (refl_Pprop P l)/\(refl_Ctxt D l)
   end.
-
-Fixpoint refl_C (C : Ctxt) : Prop :=
-  forall l : list nat, refl_Ctxt C l 0.
-
-Eval compute in (refl_C(assume (Peq (Pvar 0) (PS (PS PO))) (intc (assume (Peq (Pvar 0) (Pvar 0)) (intc (assume (Peq (Pvar 0) (PO)) (intc nilc))))))).
 
 
 (* On va tester si refl_Pprop (∀x.∃y.x = S(y) ∨ x = 0) se réduit    *
@@ -219,6 +208,12 @@ Eval compute in (refl_C(assume (Peq (Pvar 0) (PS (PS PO))) (intc (assume (Peq (P
 Eval compute in (refl_Pprop (Pfa (Pex (Por (Peq (Pvar 1) (PS (Pvar 0))) (Peq (Pvar 1) (PO))))) nil).
 
 Eval compute in (refl_Pprop (Pfa (Pfa (Pim (Peq (PS (Pvar 1)) (PS (Pvar 0))) (Peq (Pvar 1) (Pvar 0)) ))) nil).
+
+(* On teste la réflection sur le contexte                           *
+ * [x : nat; x = x; y : nat; y = x], qui devrait donner             *
+ * forall x : nat, x = x /\ (forall y : nat, y = x /\ True)         *) 
+
+Eval compute in (refl_Ctxt (intc (assume (Peq (Pvar 0) (Pvar 0)) (intc (assume (Peq (Pvar 0) (Pvar 1)) (nilc))))) nil).
 
 
 
@@ -374,12 +369,11 @@ Abort.
 
 
 
-Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil 0) -> (refl_Pprop P nil).
+Theorem reflection (G : Ctxt) (P : Pprop): ded_nat G P -> (refl_Ctxt G nil) -> (refl_Pprop P nil).
 Proof.
 induction 1.
 - simpl; intros; destruct H; trivial.
-- simpl; intros; destruct H0; apply IHded_nat.
-pose (H2 := H1 0); trivial.
+- simpl; intros; destruct H0; apply IHded_nat; trivial.
 - simpl; intros; apply IHded_nat; simpl; refine (conj _ _); trivial.
 - intros; simpl refl_Pprop in IHded_nat1; apply IHded_nat1; trivial; apply IHded_nat2; trivial.
 - simpl; intros; refine (conj _ _).
@@ -424,12 +418,8 @@ intros.
  
 
 
-
-
-(*
-apply (impi G A B).
- pose (H2 := IHded_nat1 H1); pose (H3 := IHded_nat2 H1).
-*)
+(* Dans cette section on définit la traduction de Friedman pour les *
+ * propriétés et les contextes.                                     *)
 
 Fixpoint Friedman (P : Pprop) (A : Pprop) : Pprop :=
   match P with
