@@ -409,10 +409,46 @@ Fixpoint Friedman_ctxt (C : Ctxt) (A : Pprop) :=
     | assume P D => assume (Friedman P A) (Friedman_ctxt D A)
   end.
 
- (*
-Lemma peano_to_heyting G P : ded_nat G P -> ded_nat_heyting G P.
-Defined.
-*)
+
+
+(* Lemme 1: On étend, de manière triviale, la transformée par double*
+ * négation aux contextes. S’il existe une dérivation de Γ t P dans *
+ * l’arithmétique de Peano, il existe une dérivation de             *
+ * Γ^A t ¬^A ¬^A P^A dans l’arithmétique de Heyting.                *)  
+
+Lemma Peano_Heyting (P : Pprop) (C : Ctxt) (A : Pprop) : (ded_nat_em C P ) -> ded_nat (Friedman_ctxt C A) (Pim (Pim (Friedman P A) A) A).
+Proof.
+induction 1.
+- simpl.
+  apply (impi ((assume (Friedman A0 A) (Friedman_ctxt G A))) ((Pim (Friedman A0 A) A)) (A)).
+  apply (impe (assume (Pim (Friedman A0 A) A) (assume (Friedman A0 A) (Friedman_ctxt G A))) (Friedman A0 A) A).
+ -- apply (axiom (assume (Friedman A0 A) (Friedman_ctxt G A)) (Pim (Friedman A0 A) A)).
+ -- apply (weak ((assume (Friedman A0 A) (Friedman_ctxt G A))) ((Friedman A0 A)) ((Pim (Friedman A0 A) A))).
+    apply (axiom ((Friedman_ctxt G A)) ((Friedman A0 A))).
+- simpl.
+  apply (impi ((assume (Friedman B A) (Friedman_ctxt G A))) ((Pim (Friedman A0 A) A)) (A)).
+  admit.
+- simpl.
+admit.
+- simpl.
+  apply (impi ((Friedman_ctxt G A)) (Pim (Friedman B A) A) A).
+  apply (impe ((assume (Pim (Friedman B A) A) (Friedman_ctxt G A))) (Friedman B A) (A)).
+  -- apply (axiom ( (Friedman_ctxt G A)) ((Pim (Friedman B A) A))).
+  -- admit.
+- apply (impi ((Friedman_ctxt G A)) ((Pim (Friedman (Pan A0 B) A) A)) (A)).
+  apply (impe ((assume (Pim (Friedman (Pan A0 B) A) A)
+     (Friedman_ctxt G A))) (Friedman (Pan A0 B) A) (A)).
+  -- apply (axiom ( (Friedman_ctxt G A)) ((Pim (Friedman (Pan A0 B) A) A))).
+  -- simpl Friedman.
+     apply (andi ((assume (Pim (Pan (Pim (Pim (Friedman A0 A) A) A) (Pim (Pim (Friedman B A) A) A)) A) (Friedman_ctxt G A))) ((Pim (Pim (Friedman A0 A) A) A)) ((Pim (Pim (Friedman B A) A) A))).
+     --- apply (impi ((assume (Pim (Pan (Pim (Pim (Friedman A0 A) A) A) (Pim (Pim (Friedman B A) A) A)) A) (Friedman_ctxt G A))) ((Pim (Friedman A0 A) A)) (A)).
+         apply (impe ((assume (Pim (Friedman A0 A) A) (assume (Pim (Pan (Pim (Pim (Friedman A0 A) A) A) (Pim (Pim (Friedman B A) A) A)) A) (Friedman_ctxt G A)))) (A0) (A)).   
+         ----- 
+(* Lemme 2 : Les formules sans quantificateurs sont décidables      *
+ * (en particulier dans Coq).                                       *)
+
+(* On définit d'abord une fonction qui détermine si une formule     *
+ * contient ou non des quantifieurs :                               *)
 
 Fixpoint not_quant (P : Pprop) : Prop :=
   match P with
@@ -428,28 +464,19 @@ Fixpoint not_quant (P : Pprop) : Prop :=
   end.
 
 
-(* Lemme 1 On étend, de manière triviale, la transformée par double *
- * négation aux contextes. S’il existe une dérivation de Γ t P dans *
- * l’arithmétique de Peano, il existe une dérivation de             *
- * Γ^A t ¬^A ¬^A P^A dans l’arithmétique de Heyting.                *)  
-
-Lemma Peano_Heyting (P : Pprop) (C : Ctxt) (A : Pprop) : (ded_nat_em C P ) -> ded_nat (Friedman_ctxt C A) (Pim (Pim (Friedman P A) A) A).
-Proof.
-induction 1.
-- simpl.
-  apply (impi ((assume (Friedman A0 A) (Friedman_ctxt G A))) ((Pim (Friedman A0 A) A)) (A)).
-  apply (impe (assume (Pim (Friedman A0 A) A) (assume (Friedman A0 A) (Friedman_ctxt G A))) (Friedman A0 A) A).
- -- apply (axiom ((assume (Friedman A0 A) (Friedman_ctxt G A))) (Pim (Friedman A0 A) A)).
- -- apply 
-
-
-(*Lemma friedman_equiv_A_disj (P : Pprop) (A : Pprop) : (not_quant P) -> ((Friedman P A -> Por P A) /\ (Por P A -> Friedman P A)).
-*)
-Lemma not_quant_decidable (P : Pprop) (A : Pprop) : (refl_Pprop (Friedman P A) nil) \/ (refl_Pprop (Pno (Friedman P A)) nil).
+Lemma not_quant_decidable (P : Pprop) (A : Pprop) : not_quant P -> (refl_Pprop (Friedman P A) nil) \/ (refl_Pprop (Pno (Friedman P A)) nil).
 Proof.
 induction P, A; simpl refl_Pprop.
 - right.
 right.
+
+
+
+(* Lemme 3 : Soit P une formule sans quantificateurs. On a, dans    * 
+ * Coq, P^A ⇐⇒ P ∨ A.                                               *)
+
+Lemma Friedman_equiv_A_disj (P : Pprop) (A : Pprop) : (not_quant P) -> ((Friedman P A -> Por P A) /\ (Por P A -> Friedman P A)).
+
 
 
 
